@@ -22,15 +22,18 @@ class Usuario(Base):
     recursos_creados = relationship
     (
         "RecursoEducativo", 
+        # pyrefly: ignore[parse-error]
         back_populates="autor")
     actividades_creadas = relationship
     (
         "ActividadInteractiva", 
+        # pyrefly: ignore[parse-error]
         back_populates="autor"
         )
     contactos_creados = relationship
     (
         "RedApoyo", 
+        # pyrefly: ignore[parse-error]
         back_populates="autor"
         )
 
