@@ -1,50 +1,51 @@
-import os
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
-from dotenv import load_dotenv
+from datetime import UTC, datetime, timedelta
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+import bcrypt
 from app import models
-from app.schemas import TokenData, RolEnum
-
-load_dotenv()
+from app.config import settings
+from app.database import get_db
+from app.schemas import RolEnum, TokenData
 
 # Configuración criptográfica
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(description="Token JWT en formato Bearer")
-
-SECRET_KEY = os.getenv("SECRET_KEY", "conectamente_secret_key_temporal_2026")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
-
 
 # 1. Utilidades de HASHING de contraseñas
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica si la contraseña en texto plano coincide con el hash almacenado."""
-    return pwd_context.verify(plain_password, hashed_password)
-
 
 def get_password_hash(password: str) -> str:
-    """Genera un hash seguro con bcrypt para almacenar en Usuario.Password_hash."""
-    return pwd_context.hash(password)
+    """Genera un hash bcrypt con salt aleatoria (12 rondas)."""
+    password_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica una contraseña plana contra su hash bcrypt almacenado."""
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except ValueError:
+        return False
 
 
 # 2. Generacion y decodificacion de tokens jwt
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Crea un token JWT firmado con tiempo de expiración en UTC."""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + (
+        expires_delta if expires_delta else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_access_token(token: str) -> TokenData:
@@ -55,29 +56,32 @@ def decode_access_token(token: str) -> TokenData:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: Optional[int] = payload.get("sub")
-        email: Optional[str] = payload.get("email")
-        rol: Optional[str] = payload.get("rol")
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        user_id: int | None = payload.get("sub")
+        email: str | None = payload.get("email")
+        rol: str | None = payload.get("rol")
         if user_id is None or email is None:
             raise credentials_exception
         return TokenData(user_id=int(user_id), email=email, rol=rol)
-    except (JWTError, ValueError):
-        raise credentials_exception
+    except (JWTError, ValueError) as exc:
+        raise credentials_exception from exc
 
 
 # 3. Dependencias de autenticacion y autorizacion por roles RBAC
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> models.Usuario:
     """Obtiene el usuario autenticado actual desde MySQL y verifica que esté activo."""
     token_data = decode_access_token(credentials.credentials)
     usuario = (
-        db.query(models.Usuario)
-        .filter(models.Usuario.Id_usuario == token_data.user_id)
-        .first()
+        db.query(models.Usuario).filter(models.Usuario.Id_usuario == token_data.user_id).first()
     )
     if usuario is None:
         raise HTTPException(
@@ -95,7 +99,7 @@ def get_current_user(
 class RoleChecker:
     """Validador reutilizable de permisos según los actores del diagrama de Casos de Uso."""
 
-    def __init__(self, allowed_roles: List[str]):
+    def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
 
     def __call__(self, current_user: models.Usuario = Depends(get_current_user)) -> models.Usuario:

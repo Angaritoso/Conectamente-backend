@@ -1,132 +1,215 @@
-from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
 )
 from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
 class Usuario(Base):
-    __tablename__ = "usuarios"
+    __tablename__ = "Usuario"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombre = Column(String(100), nullable=False)
-    email = Column(String(150), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    rol = Column(Enum("estudiante", "admin", "orientador", name="roles_enum"), nullable=False, default="estudiante")
-    fecha_registro = Column(DateTime, default=datetime.utcnow, nullable=False)
-    estado = Column(Boolean, default=True, nullable=False)
+    Id_usuario = Column(Integer, primary_key=True, autoincrement=True)
+    Email = Column(String(150), unique=True, nullable=False, index=True)
+    Name = Column(String(100), nullable=False)
+    Password_hash = Column(String(250), nullable=False)
+    Rol = Column(
+        Enum("Estudiante", "admin", "orientador", name="rol_usuario_enum"),
+        nullable=False,
+        default="Estudiante",
+    )
+    Fecha_registro = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
+    Estado = Column(Boolean, default=True, nullable=False)
 
     # Relaciones
-    diario_entradas = relationship("DiarioEmocionUsuario", back_populates="usuario", cascade="all, delete-orphan")
-    recursos_creados = relationship
-    (
-        "RecursoEducativo", 
-        # pyrefly: ignore[parse-error]
-        back_populates="autor")
-    actividades_creadas = relationship
-    (
-        "ActividadInteractiva", 
-        # pyrefly: ignore[parse-error]
-        back_populates="autor"
-        )
-    contactos_creados = relationship
-    (
-        "RedApoyo", 
-        # pyrefly: ignore[parse-error]
-        back_populates="autor"
-        )
+    diario_entradas = relationship(
+        "DiarioEmocionUsuario",
+        back_populates="usuario",
+        cascade="all, delete-orphan",
+    )
+    recursos_creados = relationship(
+        "RecursoEducativo",
+        back_populates="autor",
+    )
+    actividades_creadas = relationship(
+        "ActividadesInteractivas",
+        back_populates="autor",
+    )
+    contactos_creados = relationship(
+        "RedApoyo",
+        back_populates="autor",
+    )
 
 
 class Emocion(Base):
-    __tablename__ = "emociones"
+    __tablename__ = "Emocion"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombre = Column(String(50), unique=True, nullable=False)
-    descripcion = Column(Text, nullable=False)
-    estrategias_afrontamiento = Column(Text, nullable=True)
-    icono_url = Column(String(255), nullable=True)
+    Id_emocion = Column(Integer, primary_key=True, autoincrement=True)
+    Nombre = Column(String(50), unique=True, nullable=False)
+    Descripcion = Column(Text, nullable=False)
+    Estrategias_afrontamiento = Column(Text, nullable=True)
+    Icono_url = Column(String(250), nullable=True)
 
     # Relaciones
-    diario_entradas = relationship("DiarioEmocionUsuario", back_populates="emocion")
-    actividades = relationship("ActividadInteractiva", back_populates="emocion")
+    diario_entradas = relationship(
+        "DiarioEmocionUsuario",
+        back_populates="emocion",
+    )
+    actividades = relationship(
+        "ActividadesInteractivas",
+        back_populates="emocion",
+    )
 
 
 class RecursoEducativo(Base):
-    __tablename__ = "recursos_educativos"
+    __tablename__ = "Recurso_Educativo"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    admin_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    titulo = Column(String(200), nullable=False)
-    categoria = Column(String(50), nullable=False)
-    contenido_markdown = Column(Text, nullable=False)
-    tiempo_lectura = Column(Integer, default=5)
-    fecha_publicacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    Id_Recurso = Column(Integer, primary_key=True, autoincrement=True)
+    Id_admin = Column(
+        Integer,
+        ForeignKey("Usuario.Id_usuario"),
+        nullable=False,
+    )
+    Titulo = Column(String(200), nullable=True)
+    Categoria = Column(String(50), nullable=False, index=True)
+    Contenido_markdown = Column(Text, nullable=True)
+    Tiempo_lectura = Column(Integer, nullable=True, default=5)
+    Fecha_publicacion = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
 
-    autor = relationship("Usuario", back_populates="recursos_creados")
-
-
-class ActividadInteractiva(Base):
-    __tablename__ = "actividades_interactivas"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    admin_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    emocion_id = Column(Integer, ForeignKey("emociones.id"), nullable=True)
-    titulo = Column(String(150), nullable=False)
-    tipo_actividad = Column(String(50), nullable=False)
-    instrucciones = Column(Text, nullable=False)
-    duracion_estimada = Column(Integer, nullable=False)
-
-    autor = relationship("Usuario", back_populates="actividades_creadas")
-    emocion = relationship("Emocion", back_populates="actividades")
-
-
-class DiarioEmocionUsuario(Base):
-    __tablename__ = "diario_emociones_usuario"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
-    emocion_id = Column(Integer, ForeignKey("emociones.id"), nullable=False)
-    nota_privada = Column(Text, nullable=True)
-    fecha_registro = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    usuario = relationship("Usuario", back_populates="diario_entradas")
-    emocion = relationship("Emocion", back_populates="diario_entradas")
+    # Relaciones
+    autor = relationship(
+        "Usuario",
+        back_populates="recursos_creados",
+    )
 
 
 class RedApoyo(Base):
-    __tablename__ = "redes_apoyo"
+    __tablename__ = "Red_Apoyo"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    admin_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    nombre_entidad = Column(String(100), nullable=False)
-    tipo_servicio = Column(String(50), nullable=False)
-    telefono = Column(String(50), nullable=False)
-    email_contacto = Column(String(100), nullable=True)
-    horario_atencion = Column(String(50), nullable=False)
-    sitio_web = Column(String(100), nullable=True)
-    es_linea_emergencia = Column(Boolean, default=False, nullable=False)
+    Id_red_Ap = Column(Integer, primary_key=True, autoincrement=True)
+    Id_admin = Column(
+        Integer,
+        ForeignKey("Usuario.Id_usuario"),
+        nullable=False,
+    )
+    Nombre_entidad = Column(String(100), nullable=False)
+    Tipo_servicio = Column(String(50), nullable=False)
+    Telefono = Column(String(50), nullable=False)
+    Email_contacto = Column(String(100), nullable=True)
+    Horario_atencion = Column(String(50), nullable=False)
+    Sitio_web = Column(String(100), nullable=True)
+    Es_linea_emergencia = Column(Boolean, default=False, nullable=False, index=True)
 
-    autor = relationship("Usuario", back_populates="contactos_creados")
+    # Relaciones
+    autor = relationship(
+        "Usuario",
+        back_populates="contactos_creados",
+    )
 
 
-# --- TABLAS AISLADAS POR PRIVACIDAD (REGISTROS ANÓNIMOS) ---
+class ActividadesInteractivas(Base):
+    __tablename__ = "Actividades_interactivas"
+
+    Id_actividades = Column(Integer, primary_key=True, autoincrement=True)
+    Id_admin = Column(
+        Integer,
+        ForeignKey("Usuario.Id_usuario"),
+        nullable=False,
+    )
+    Id_emocion = Column(
+        Integer,
+        ForeignKey("Emocion.Id_emocion"),
+        nullable=True,
+        index=True,
+    )
+    Titulo = Column(String(150), nullable=False)
+    Tipo_actividad = Column(String(50), nullable=False)
+    Instrucciones = Column(Text, nullable=False)
+    Duracion_estimada = Column(Integer, nullable=False)
+
+    # Relaciones
+    autor = relationship(
+        "Usuario",
+        back_populates="actividades_creadas",
+    )
+    emocion = relationship(
+        "Emocion",
+        back_populates="actividades",
+    )
+
+
+class DiarioEmocionUsuario(Base):
+    __tablename__ = "Diario_Emocion_Usuario"
+
+    Id_diario_usuario = Column(Integer, primary_key=True, autoincrement=True)
+    id_usuario = Column(
+        Integer,
+        ForeignKey("Usuario.Id_usuario", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    Id_emocion = Column(
+        Integer,
+        ForeignKey("Emocion.Id_emocion"),
+        nullable=False,
+    )
+    Nota_priv = Column(Text, nullable=True)
+    Fecha_registro = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    # Relaciones
+    usuario = relationship(
+        "Usuario",
+        back_populates="diario_entradas",
+    )
+    emocion = relationship(
+        "Emocion",
+        back_populates="diario_entradas",
+    )
+
 
 class EncuestaDiagnostico(Base):
-    __tablename__ = "encuestas_diagnostico"
+    __tablename__ = "Encuesta_diagnostico"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    rango_edad = Column(String(50), nullable=False)
-    necesidad_principal = Column(String(100), nullable=False)
-    detalles = Column(Text, nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    Id_encuesta = Column(Integer, primary_key=True, autoincrement=True)
+    Rango_edad = Column(String(50), nullable=False)
+    Necesidad_principal = Column(String(100), nullable=False)
+    Detalles = Column(Text, nullable=False)
+    Fecha_creacion = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
 
 
 class FeedbackUsabilidad(Base):
-    __tablename__ = "feedback_usabilidad"
+    __tablename__ = "Feedback_usabilidad"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    calificacion_facilidad = Column(Integer, nullable=False)
-    utilidad_percibida = Column(Integer, nullable=False)
-    comentario_mejora = Column(Text, nullable=True)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    Id_feedback = Column(Integer, primary_key=True, autoincrement=True)
+    Calificacion_facilidad = Column(Integer, nullable=False)
+    Utilidad_percibida = Column(Integer, nullable=False)
+    Comentario_mejora = Column(Text, nullable=True)
+    Fecha_creacion = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
