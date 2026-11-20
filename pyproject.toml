@@ -1,0 +1,33 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    ".venv",
+    "__pycache__",
+    "alembic/versions",
+]
+
+[tool.ruff.lint]
+# E/W: PEP 8 | F: errores e imports sin usar | I: orden de imports | B: bugs comunes | UP: sintaxis moderna
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [
+    "B008", # Permite Depends(...) en los argumentos por defecto de los endpoints de FastAPI
+    "E501", # Delega el ancho de línea a ruff format (evita ruido en textos largos en español)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Permite modificar sys.path antes de importar 'app' en Alembic
+"alembic/env.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v"
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:DeprecationWarning",
+]

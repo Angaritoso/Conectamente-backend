@@ -127,3 +127,132 @@ CREATE TABLE IF NOT EXISTS Feedback_usabilidad (
     Comentario_mejora TEXT NULL,
     Fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- PARTE 6: ÍNDICES DE RENDIMIENTO PARA CONSULTAS FRECUENTES
+
+CREATE INDEX idx_recurso_categoria ON Recurso_Educativo(Categoria);
+CREATE INDEX idx_red_apoyo_sos ON Red_Apoyo(Es_linea_emergencia);
+CREATE INDEX idx_diario_usuario_fecha ON Diario_Emocion_Usuario(id_usuario, Fecha_registro);
+CREATE INDEX idx_actividades_emocion ON Actividades_interactivas(Id_emocion);
+
+-- PARTE 7: DATOS SEMILLA (SEED DATA)
+
+-- 7.1 Usuario Administrador Base (Requerido como FK Id_admin para cargar contenidos)
+INSERT IGNORE INTO Usuario (Email, Name, Password_hash, Rol, Estado)
+VALUES (
+    'admin@conectamente.edu.co',
+    'Administrador ConectaMente',
+    -- se remplaza por el hash obtenido 
+    '$2b$12$DwmJm1k79Zr6gVnq4VdmeOK3PogRfxXYQ2z74tlHpNIVg/6tHtGE2',  
+    'admin',
+    TRUE
+);
+
+-- Captura del Id_usuario del administrador para las llaves foráneas
+SET @id_admin_base = (
+    SELECT Id_usuario
+    FROM Usuario
+    WHERE Email = 'admin@conectamente.edu.co'
+    LIMIT 1
+);
+
+-- 7.2 Módulo 1: Catálogo de las 6 Emociones Primarias
+INSERT IGNORE INTO Emocion (Nombre, Descripcion, Estrategias_afrontamiento, Icono_url) VALUES
+(
+    'Alegría',
+    'Estado emocional de bienestar, satisfacción y entusiasmo que surge ante logros, vínculos positivos o experiencias gratificantes.',
+    'Comparte el momento con personas de confianza; registra qué generó este estado en tu diario emocional para reconocer tus fuentes de bienestar; practica la gratitud consciente.',
+    '/assets/icons/emociones/alegria.svg'
+),
+(
+    'Tristeza',
+    'Respuesta natural ante pérdidas, decepciones o situaciones dolorosas que invita a la pausa, la introspección y la búsqueda de contención.',
+    'Permítete sentir y expresar la emoción sin juzgarte; escribe lo que sientes en tu diario privado; conversa con un amigo, familiar u orientador; evita el aislamiento prolongado.',
+    '/assets/icons/emociones/tristeza.svg'
+),
+(
+    'Miedo',
+    'Mecanismo de alerta que se activa frente a una amenaza real o percibida, preparando al cuerpo para protegerse ante la incertidumbre.',
+    'Practica respiración diafragmática lenta (inhalar en 4 tiempos, sostener 4, exhalar en 6); diferencia entre hechos reales y pensamientos anticipatorios; divide el reto en pasos pequeños y manejables.',
+    '/assets/icons/emociones/miedo.svg'
+),
+(
+    'Enojo',
+    'Emoción intensa que aparece cuando percibimos injusticia, vulneración de límites personales o bloqueo de metas importantes.',
+    'Haz una pausa física antes de responder (regla de los 10 minutos); libera tensión con respiración profunda o caminata breve; expresa tu inconformidad usando comunicación asertiva sin agresión.',
+    '/assets/icons/emociones/enojo.svg'
+),
+(
+    'Frustración',
+    'Sensación de impotencia o malestar que surge cuando los resultados no coinciden con el esfuerzo realizado o aparecen obstáculos imprevistos.',
+    'Reevalúa las expectativas y ajusta el plan por metas alcanzables; identifica qué factores están bajo tu control y cuáles no; pide retroalimentación a un docente o compañero.',
+    '/assets/icons/emociones/frustracion.svg'
+),
+(
+    'Preocupación',
+    'Estado de inquietud mental enfocado en problemas futuros o exigencias académicas y sociales que puede derivar en sobrecarga si se mantiene.',
+    'Anota tus pendientes por orden de prioridad y asigna horarios realistas; desconéctate de pantallas antes de dormir; enfoca tu atención en una sola tarea a la vez.',
+    '/assets/icons/emociones/preocupacion.svg'
+);
+
+-- 7.3 Módulo 5: Contactos Iniciales de Red de Apoyo y Botón SOS (Colombia)
+INSERT INTO Red_Apoyo (
+    Id_admin,
+    Nombre_entidad,
+    Tipo_servicio,
+    Telefono,
+    Email_contacto,
+    Horario_atencion,
+    Sitio_web,
+    Es_linea_emergencia
+) VALUES
+(
+    @id_admin_base,
+    'Línea 106 - Apoyo Psicosocial y Salud Mental',
+    'Atención Psicosocial',
+    '106',
+    NULL,
+    '24 horas / 7 días',
+    NULL,
+    TRUE
+),
+(
+    @id_admin_base,
+    'Línea 123 - Emergencias Nacionales',
+    'Emergencia General',
+    '123',
+    NULL,
+    '24 horas / 7 días',
+    NULL,
+    TRUE
+),
+(
+    @id_admin_base,
+    'Línea 192 (Opción 4) - Ministerio de Salud',
+    'Orientación en Salud Mental',
+    '192 (Opción 4)',
+    NULL,
+    '24 horas / 7 días',
+    'https://www.minsalud.gov.co',
+    TRUE
+),
+(
+    @id_admin_base,
+    'Línea 141 - ICBF Protección a Niños y Jóvenes',
+    'Protección Juvenil',
+    '141',
+    NULL,
+    '24 horas / 7 días',
+    'https://www.icbf.gov.co',
+    TRUE
+),
+(
+    @id_admin_base,
+    'Orientación Escolar / Bienestar Institucional',
+    'Orientación Educativa',
+    'Consultar extensión institucional',
+    'orientacion@institucion.edu.co',
+    'Lunes a Viernes 7:00 AM - 4:00 PM',
+    NULL,
+    FALSE
+);
