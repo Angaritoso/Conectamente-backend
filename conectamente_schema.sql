@@ -142,6 +142,7 @@ INSERT IGNORE INTO Usuario (Email, Name, Password_hash, Rol, Estado)
 VALUES (
     'admin@conectamente.edu.co',
     'Administrador ConectaMente',
+    -- se remplaza por el hash obtenido 
     '$2b$12$DwmJm1k79Zr6gVnq4VdmeOK3PogRfxXYQ2z74tlHpNIVg/6tHtGE2',  
     'admin',
     TRUE
